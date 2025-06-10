@@ -1,29 +1,40 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
+
+// Funzione debounce generica
+function debounce(fn, delay) {
+  let timer
+  return (...args) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), delay)
+  }
+}
 
 function App() {
   const [query, setQuery] = useState("")
   const [prodotti, setProdotti] = useState([])
-  const debounceRef = useRef(null)
 
-  useEffect(() => {
+
+  const fetchProducts = useCallback((term) => {
     if (!query.trim()) {
       setProdotti([])
       return
     }
 
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    fetch(`http://localhost:3333/products?search=${term}`)
+      .then(res => res.json())
+      .then(data => setProdotti(data))
+      .catch(err => {
+        console.error('Errore nella chiamata API:', err)
+        setProdotti([])
+      })
+  }, [])
 
-    debounceRef.current = setTimeout(() => {
-      fetch(`http://localhost:3333/products?search=${query}`)
-        .then(res => res.json())
-        .then(data => setProdotti(data))
-        .catch(err => {
-          console.error('Errore nella chiamata API:', err)
-          setProdotti([])
-        })
-    }, 300)
-  }, [query])
+  const debouncedFetch = useRef(debounce(fetchProducts, 300)).current
+
+  useEffect(() => {
+    debouncedFetch(query)
+  }, [query, debouncedFetch])
 
   return (
     <>
