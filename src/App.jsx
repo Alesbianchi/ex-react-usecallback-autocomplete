@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [query, setQuery] = useState("")
+  const [prodotti, setProdotti] = useState([])
+  const debounceRef = useRef(null)
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setProdotti([])
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(() => {
+      fetch(`http://localhost:3333/products?search=${query}`)
+        .then(res => res.json())
+        .then(data => setProdotti(data))
+        .catch(err => {
+          console.error('Errore nella chiamata API:', err)
+          setProdotti([])
+        })
+    }, 300)
+  }, [query])
 
   return (
     <>
       <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <input
+          type="text"
+          placeholder="Cerca il tuo prodotto.."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+
+        {query && prodotti.length > 0 && (
+          <div className='container'>
+            {prodotti.map(product => (
+              <p className='card' key={product.id}>{product.name}</p>
+            ))}
+          </div>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
 
 export default App
+
